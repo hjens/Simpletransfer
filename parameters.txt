@@ -1,0 +1,6 @@
+SpecRes = 500 #Resolution of the spectrum
+BWUpper = 1190 #Upper wavelength
+BWLower = 1220 #Lower wavelength
+z = 7.08	#Redshift
+outfile = transmission.txt #Filename of output
+cell_split = 1
