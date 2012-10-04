@@ -27,7 +27,7 @@ print 'Reading parameters from:', params_filename
 params = st.read_params(params_filename)
 
 z = float(params['z'])
-Hz = 70.*np.sqrt(0.27*z**3 + (1.-0.27))	#Hubble parameter
+Hz = 70.*np.sqrt(0.27*(z+1)**3 + (1.-0.27))	#Hubble parameter
 print 'Plotting for redshift:', z
 
 data = np.loadtxt(tdata)

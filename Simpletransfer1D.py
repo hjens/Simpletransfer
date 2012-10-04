@@ -126,7 +126,7 @@ def run_sim(params, col_data):
 	rho_n = get_interpolated_array(rho_n_data, new_len, kind='nearest')
 
 	Dnu_D = 1.0566e11*(temperature/1.e4)**(1./2.)
-	Hz = H0*np.sqrt(Omega0*float(params['z'])**3 + lam)	#Hubble parameter
+	Hz = H0*np.sqrt(Omega0*(1.+float(params['z']))**3 + lam)	#Hubble parameter
 	U = dist*Hz/1000./12.845/((temperature/1.e4)**(1./2.)) #Gas velocity/thermal width
 	n_HI = rho_n*x_hi*(1.-abu_he) #Number density of HI
 
