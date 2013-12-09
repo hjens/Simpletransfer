@@ -26,8 +26,9 @@ print 'num_plots', num_plots
 print 'Reading parameters from:', params_filename
 params = st.read_params(params_filename)
 
+#Read redshift
 z = float(params['z'])
-Hz = 70.*np.sqrt(0.27*(z+1)**3 + (1.-0.27))	#Hubble parameter
+Hz = 70.*np.sqrt(0.27*(z+1)**3 + (1.-0.27))
 print 'Plotting for redshift:', z
 
 data = np.loadtxt(tdata)
