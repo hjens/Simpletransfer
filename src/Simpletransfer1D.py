@@ -12,8 +12,8 @@ from optparse import OptionParser
 
 
 #Physical constants
-c		= 2.99792458e10;	#Speed of light; cm/s
-nu_0	= 2.46607e15;  		#Lya line-center frequency; Hz
+c		= 2.99792458e10		#Speed of light; cm/s
+nu_0	= 2.46607e15  		#Lya line-center frequency; Hz
 Dnu_L	= 9.936e7			#LyA natural line width; Hz
 f_12	= 0.4162          	#Oscillator strength
 e    	= 4.803206e-10		#electron charge
@@ -23,7 +23,24 @@ Omega0	= 0.044+0.254#0.27				#Matter fraction
 lam 	= 1.-Omega0			#Cosmological constant
 kpc 	= 3.08567758131e21	#kpc to cm
 abu_he	= 0.074				#fractional helium abundance
+wavel0  = c/nu_0*1.e8		#Lya line center in A
 #--------------
+
+def angstrom_to_mpc(ang, z):
+	Hz = get_Hz(z)
+	return (c*1.e-5)/Hz*(ang/wavel0-1.)
+
+
+def mpc_to_angstrom(mpc, z):
+	Hz = get_Hz(z)
+	ang = wavel0*(mpc*Hz/(c*1.e-5)+1.)
+	return ang
+	
+	
+def get_Hz(z):
+	Hz = H0*np.sqrt(Omega0*(1.+z)**3 + lam)
+	return Hz
+
 
 def read_params(params_filename):
 	'''Read parameter file and return
@@ -38,6 +55,7 @@ def read_params(params_filename):
 		params[key.strip()] = val.strip()
 	return params
 
+
 def sigma(Dnu_D, x, idx):
 	''' Get LyA cross section at the specified position '''
 
@@ -45,26 +63,39 @@ def sigma(Dnu_D, x, idx):
 
 	x2 = x**2
 	z = (x2-0.855)/(x2+3.42)
-	q = np.where(z <= 0, 0.0, z*(1.+21./x2)*a/(np.pi*(x2+1.0)) * (0.1117 + z*(4.421 + z*(-9.207 + 5.674*z))) )
+	q = np.where(z <= 0, 0.0, z*(1.+21./x2)*a/(np.pi*(x2+1.0)) * \
+				(0.1117 + z*(4.421 + z*(-9.207 + 5.674*z))) )
 	voigt = np.sqrt(np.pi)*q + np.exp(-x2)
 	sigma_x = f_12 * np.sqrt(np.pi) * e*e/(m_e*c*Dnu_D[idx])*voigt
 
 	return sigma_x
 
+
 def lorentz_transform(x, Dnu_D, U, idx0):
+	'''
+	x - normalized frequency
+	Dnu_D - Doppler broadening. Depends on T
+	U - velocity/thermal width. Includes Hubble flow
+	idx0 - current LOS idx
+	'''
+	
 	oldD = Dnu_D[idx0-1]
 	oldU = U[idx0-1]
 	newD = Dnu_D[idx0]
 	newU = U[idx0]
 	
-	return (x+oldU)*(oldD/newD) - newU
+	new_x = (x+oldU)*(oldD/newD) - newU
+	return new_x
+
 
 def init_freq(Dnu_D, params):
 	''' Initialize the systemic frequency '''
 
-	wavel = np.linspace(float(params['BWLower']), float(params['BWUpper']), int(params['SpecRes']) )
+	wavel = np.linspace(float(params['BWLower']), \
+					float(params['BWUpper']), int(params['SpecRes']) )
 	nu = c/(wavel * 1.e-8)
 	return (nu-nu_0)/Dnu_D[0]
+
 
 def get_tau(dist, n_HI, Dnu_D, U, params):
 	''' Calculate the total tau along the line of sight '''
@@ -80,8 +111,11 @@ def get_tau(dist, n_HI, Dnu_D, U, params):
 		sigma_x = sigma(Dnu_D, x, i)
 		x = lorentz_transform(x, Dnu_D, U, i)
 		tau += (dist[i]-dist[i-1])*kpc*n_HI[i]*sigma_x
+		print i, np.sum((dist[i]-dist[i-1])*kpc*n_HI[i]*sigma_x)
 
 	return tau
+
+
 
 def get_interpolated_array(in_array, new_len, kind='nearest'):
 	''' Get a higher-res version of in_array 
@@ -92,6 +126,7 @@ def get_interpolated_array(in_array, new_len, kind='nearest'):
 	func = interp1d(np.linspace(0,1,old_len), in_array, kind=kind)
 	out_array = func(np.linspace(0,1,new_len))
 	return out_array
+
 
 #-----------------------------
 #If you are writing your own script, this is the function you want to use!
@@ -115,7 +150,7 @@ def run_sim(params, col_data):
 	dist_data = col_data[:,0]/kpc #distance in kpc
 	x_hi_data = col_data[:,1]
 	temperature_data = col_data[:,2]
-	rho_n_data = col_data[:,3] 
+	rho_n_data = col_data[:,3]
 
 	#Increase the resolution by interpolating the data
 	cell_split = int(params['cell_split'])
@@ -126,12 +161,13 @@ def run_sim(params, col_data):
 	rho_n = get_interpolated_array(rho_n_data, new_len, kind='nearest')
 
 	Dnu_D = 1.0566e11*(temperature/1.e4)**(1./2.)
-	Hz = H0*np.sqrt(Omega0*(1.+float(params['z']))**3 + lam)	#Hubble parameter
-	U = dist*Hz/1000./12.845/((temperature/1.e4)**(1./2.)) #Gas velocity/thermal width
+	Hz = get_Hz(float(params['z']))
+	U = dist*Hz/1000./12.844/((temperature/1.e4)**(1./2.)) #Gas velocity/thermal width
 	n_HI = rho_n*x_hi*(1.-abu_he) #Number density of HI
 
 	tau = get_tau(dist, n_HI, Dnu_D, U, params)
-	wavel = np.linspace(float(params['BWLower']), float(params['BWUpper']), int(params['SpecRes']) )
+	wavel = np.linspace(float(params['BWLower']), float(params['BWUpper']), \
+					int(params['SpecRes']) )
 
 	return tau, wavel
 
