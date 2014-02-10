@@ -25,7 +25,7 @@ def plot_transmission(ax, wavel, T):
 
 
 def plot_density(col_data):
-	dist_data = col_data[:,0]/kpc #distance in kpc
+	dist_data = col_data[:,0]/st.kpc #distance in kpc
 	x_hi_data = col_data[:,1]
 	temperature_data = col_data[:,2]
 	rho_n_data = col_data[:,3] 
@@ -36,7 +36,6 @@ def plot_density(col_data):
 	pl.legend(loc='best', prop={'size':10})
 	pl.xlabel('$d \; \mathrm{kpc}$')
 
-kpc 	= 3.08567758131e21	#kpc to cm
 
 if __name__ == '__main__':
 
